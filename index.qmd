@@ -63,7 +63,33 @@ The main life evaluation question asked in the poll is the Cantril Life Ladder q
 # 5. Also with `mutate`, you should round your numbers to appropriate decimal places.
 # 6. Then use scales::percent to format the Relative change as a percentage.
 # 7. Use the `reactable` function to create and output the table.
-"WRITE_YOUR_CODE_HERE"
+# Load necessary libraries
+
+
+# 1. Drop the Code column
+cantril_clean <- cantril %>%
+  select(-Code)
+
+# 2. Filter for years 2011 and 2023
+cantril_filtered <- cantril_clean %>%
+  filter(Year %in% c(2011, 2023))
+
+# 3. Pivot wider
+cantril_wide <- cantril_filtered %>%
+  pivot_wider(names_from = Year, values_from = `Cantril ladder score`)
+
+# 4. Calculate Absolute and Relative change
+cantril_final <- cantril_wide %>%
+  mutate(
+    `Absolute change` = round(`2023` - `2011`, 2),
+    `Relative change` = round((`2023` - `2011`) / `2011`, 3)
+  ) %>%
+  # 5. Format Relative change as percentage
+  mutate(`Relative change` = percent(`Relative change`))
+
+# 6. Create interactive table
+reactable(cantril_final)
+
 ```
 
 
@@ -93,7 +119,7 @@ cantril %>%
 ```
 
 
-## 📈 Simple Chart
+## 📈 Simple Chart_Cantril score over time for a six countries
 
 ```{r}
 # In this tab, create a simple line chart of the Cantril score over time for a few countries,
@@ -109,7 +135,31 @@ cantril %>%
 # 6. Use theme_minimal to set the theme.
 # 7. Finally, use ggplotly to convert the ggplot chart to a plotly chart
 
-"WRITE_YOUR_CODE_HERE"
+library(dplyr)
+library(ggplot2)
+library(plotly)
+
+# 1. Filter to selected countries
+selected_countries <- c("Pakistan", "India", "Bangladesh", "Nepal", "United States", "United Kingdom")
+
+cantril_filtered <- cantril %>%
+  filter(Country %in% selected_countries)
+
+# 2. Create the ggplot
+p <- ggplot(cantril_filtered, aes(x = Year, y = `Cantril ladder score`, color = Country)) +
+  geom_line(size = 1.2) +
+  scale_y_continuous(limits = c(0, 10)) +
+  labs(
+    title = "Cantril Ladder Score Over Time",
+    x = "Year",
+    y = "Ladder Score",
+    color = "Country"
+  ) +
+  theme_minimal()
+
+# 3. Convert to plotly
+plotly::ggplotly(p)
+
 # (When you're done with this section, don't forget to add tabsets, as mentioned in the instructions.)
 ```
 
@@ -121,37 +171,43 @@ This is simply a demonstration for you, you do not need to work on this for your
 
 For more information on how we achieved this, see [this Stack Overflow question](https://stackoverflow.com/questions/67058016/how-to-set-default-values-in-filter-select-in-crosstalk-in-r-plotly).
 
-
+## 📈 Line Chart {.tabset}
 ```{r}
+## 📈 Line Chart {.tabset}
 pacman::p_load(crosstalk, plotly)
 
+# Filter the cantril data first
+cantril_selected <- cantril %>%
+  filter(Country %in% c("Afghanistan", "Brazil", "Pakistan", "Ukraine"))
+
 # Crosstalk shared data object
-# This allows the filter to interact with the plot
-shared_cantril_data <- highlight_key(cantril)
+shared_cantril_data <- highlight_key(cantril_selected)
 
+# Create the plot
 cantril_plotly <- plot_ly(
-    shared_cantril_data,
-    x = ~Year,
-    y = ~`Cantril ladder score`,
-    color = ~Country,
-    type = "scatter",
-    mode = "lines+markers"
+  shared_cantril_data,
+  x = ~Year,
+  y = ~`Cantril ladder score`,
+  color = ~Country,
+  type = "scatter",
+  mode = "lines+markers"
 ) %>%
-    layout(yaxis = list(range = c(0, 10)))
+  layout(yaxis = list(range = c(0, 10)))
 
-
+# Create the country filter
 country_filter <- filter_select(
-    "country_filter",
-    "Select a country to examine",
-    shared_cantril_data,
-    ~Country,
-    multiple = TRUE
+  "country_filter",
+  "Select a country to examine",
+  shared_cantril_data,
+  ~Country,
+  multiple = TRUE
 )
 
 # Output the filter and the plot
 bscols(
-    list(country_filter, cantril_plotly)
+  list(country_filter, cantril_plotly)
 )
+
 
 # Note that the default countries will only be set when you knit the document.
 # Because it relies on the javascript snippet below, which is not rendered in the quarto preview.
@@ -166,12 +222,45 @@ function filter_default() {
 window.onload = filter_default;
 </script>
 
-
+## 📊 Top and Bottom Countries {.tabset}
+### Top and Bottom 10 Countries by Happiness Score
 ```{r}
 # OPTIONAL CHALLENGE SECTION:
 
 # Add a final tab with a single figure that shows the top 10 and bottom 10 countries by happiness score in 2023. Remember to add a ## header and include it in the tabsets
-# "WRITE_YOUR_CODE_HERE"
+## 📊 Top and Bottom Countries {.tabset}
+### Top and Bottom 10 Countries by Happiness Score
+# Filter data for 2023
+cantril_2023 <- cantril %>%
+  filter(Year == 2023) %>%
+  drop_na(`Cantril ladder score`)
+
+# Get Top 10 and Bottom 10 countries
+top_bottom_10 <- cantril_2023 %>%
+  arrange(desc(`Cantril ladder score`)) %>%
+  slice(c(1:10, (n() - 9):n())) %>%
+  mutate(
+    Type = ifelse(row_number() <= 10, "Top 10", "Bottom 10")
+  )
+
+# Plot
+top_bottom_plot <- ggplot(top_bottom_10, aes(x = reorder(Country, `Cantril ladder score`), y = `Cantril ladder score`, fill = Type)) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(limits = c(0, 10)) +
+  labs(
+    title = "Top 10 and Bottom 10 Countries by Happiness Score (2023)",
+    x = "Country",
+    y = "Happiness Score"
+  ) +
+  theme_minimal() +
+  scale_fill_manual(values = c("Top 10" = "steelblue", "Bottom 10" = "salmon"))
+
+# Display the plot
+top_bottom_plot
+
+
+
 ```
 
 
